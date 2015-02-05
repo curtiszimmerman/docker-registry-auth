@@ -24,8 +24,10 @@ RUN apt-get update
 RUN apt-get install -y \
     openssh-server
 
+# create user and copy pubkey to authorized_keys
 #%NEWUSERS%
 
 EXPOSE 5000
 
+# ssh -L tunnel not this, bruh
 CMD ["service", "ssh", "start"]

@@ -6,5 +6,5 @@
 docker run -d \
   --name="docker-registry-auth" \
   --restart="always" \
-  -p 5000:5000 \
+  #%DEFAULTPORT% \
   docker-registry-auth

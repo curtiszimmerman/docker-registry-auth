@@ -67,7 +67,7 @@ PrintMotd no
 PrintLastLog yes
 TCPKeepAlive yes
 #UseLogin no
-AllowUsers l0j1k redshirt
+#%ALLOWUSERS%
 
 #MaxStartups 10:30:60
 #Banner /etc/issue.net
