@@ -34,17 +34,26 @@ function getUser() {
 }
 
 function setPort() {
-    read -p "What port does the docker-registry container listen on? " regPort
+    echo
+    read -p "What port does the docker-registry container listen on? [5000] " regPort
+    if [ -z "${regPort}" ]; then
+        regPort=5000
+    fi
     if [ ${regPort} -lt 1 ] || [ ${regPort} -gt 65535 ]; then
         echo "Invalid port! Using default of 5000"
+        regPort=5000
     fi
-    read -p "What port should the authentication container listen on? " authPort
+    read -p "What port should the authentication container listen on? [5000] " authPort
+    if [ -z "${authPort}" ]; then
+        authPort=5000
+    fi
     if [ ${authPort} -lt 1 ] || [ ${authPort} -gt 65535 ]; then
         echo "Invalid port! Using default of 5000"
+        authPort=5000
     fi
     newPorts="-p ${regPort}:5000"
-    cp lib/docker-registry.auth.sh.template tmp/docker-registry-auth.tmp
-    sed -ri "s@#%DEFAULTPORT%@${newPorts}@" tmp/docker-registry-auth.tmp
+    cp lib/docker-registry-auth.sh.template tmp/docker-registry-auth.sh.tmp
+    sed -ri "s@#%DEFAULTPORT%@${newPorts}@" tmp/docker-registry-auth.sh.tmp
     cp tmp/docker-registry-auth.sh.tmp docker-registry-auth.sh
     chmod +x docker-registry-auth.sh
 }
@@ -89,11 +98,10 @@ if [ ${#newUserNames[@]} -eq 0 ] || [ ${#newUserKeys[@]} -eq 0 ]; then
 fi
 
 cp lib/Dockerfile.template tmp/Dockerfile.tmp
-echo -e "\nAdding ${#newUserNames[@]} users and '${#newUserKeys[@]}' key(s)..."
+echo -e "\nAdding ${#newUserNames[@]} users and ${#newUserKeys[@]} key(s)..."
 
 for (( i=0; i<${#newUserNames[@]}; i++ ));
 do
-    echo "Adding user ${newUserNames[$i]}..."
     addUser "${newUserNames[${i}]}" "${newUserKeys[${i}]}"
 done
 
@@ -104,10 +112,14 @@ sed -ri "s@#%ALLOWUSERS%@AllowUsers ${newUserNames[@]}@" tmp/sshd_config
 # set ports and create docker-registry-auth.sh
 setPort
 
+echo
 echo -n "Creating Dockerfile... "
 cp ./tmp/Dockerfile.tmp ./Dockerfile
 echo "done."
-echo "Running 'docker build' command to generate container..."
+echo -e "Running 'docker build' command to generate container...\n"
 docker build -t="docker-registry-auth" .
-echo "Container has been built! You may now run 'docker-registry-auth.sh'."
+echo -e "\n Removing temporary files... "
+rm -rf tmp/*
+echo "done."
+echo "*** Container has been built! You may now run 'docker-registry-auth.sh' ***"
 echo -e "\nFinished."
