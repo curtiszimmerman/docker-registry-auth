@@ -25,17 +25,12 @@ function addUser() {
     user=$1
     key=$2
     echo -n "Adding user ${user} (key ${key})... "
-    cat > "${user}.pub" << EOKEY
-        ${key}
-    EOKEY
-    newUserCommands=<< EOCMD
-        RUN useradd -m ${user}
-        RUN mkdir -p /home/${user}/.ssh/
-        COPY tmp/${user}.pub /home/${user}/.ssh/${user}.pub
-        RUN cat /home/${user}/.ssh/${user}.pub >> /home/${user}/.ssh/authorized_keys
-        #%NEWUSERS%
-    EOCMD
-    sed -ri 's/#%NEWUSERS%/${newUserCommands}/' ./tmp/Dockerfile.tmp
+cat > "tmp/${user}.pub" << EOKEY
+${key}
+EOKEY
+    newUserCommands="RUN useradd -m ${user}\nRUN mkdir -p /home/${user}/.ssh/\nCOPY tmp/${user}.pub /home/${user}/.ssh/${user}.pub\nRUN cat /home/${user}/.ssh/${user}.pub >> /home/${user}/.ssh/authorized_keys\n#%NEWUSERS%"
+    echo "=-=======>(${newUserCommands})"
+    sed -ri "N; s@#%NEWUSERS%@${newUserCommands}@" tmp/Dockerfile.tmp
     echo "done."
 }
 
@@ -48,6 +43,8 @@ echo "   - For more information, visit: "
 echo "     https://github.com/curtiszimmerman/docker-registry-auth"
 echo "-----------------------------------------------------------------"
 echo -e "\nAdding users to SSHd authorized users list..."
+
+docker rmi docker-registry-auth >/dev/null 2>&1
 
 while true; do
     echo
@@ -72,12 +69,13 @@ if [ ${#newUserNames[@]} -eq 0 ] || [ ${#newUserKeys[@]} -eq 0 ]; then
     exit 1
 fi
 
-cp ./lib/Dockerfile.template ./tmp/Dockefile.tmp
-echo -e "\nAdding ${#newUserNames[@]} users and ${#newUserKeys[@]} key(s)..."
+cp lib/Dockerfile.template tmp/Dockerfile.tmp
+echo -e "\nAdding ${#newUserNames[@]} users and '${#newUserKeys[@]}' key(s)..."
 
-for i in $(seq 1 ${#newUserNames[@]})
+for (( i=0; i<${#newUserNames[@]}; i++ ));
 do
-    addUser ${newUserNames[$i]} ${newUserKeys[$i]}
+    echo "Adding user ${newUserNames[$i]}..."
+    addUser "${newUserNames[${i}]}" "${newUserKeys[${i}]}"
 done
 
 echo -n "Creating Dockerfile... "
